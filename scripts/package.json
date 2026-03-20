@@ -1,0 +1,10 @@
+{
+  "name": "earnsure-scripts",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "pg": "^8.12.0"
+  }
+}

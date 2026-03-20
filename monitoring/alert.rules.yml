@@ -1,0 +1,29 @@
+groups:
+  - name: earnsure_alerts
+    rules:
+      - alert: HighHttpLatency
+        expr: histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le)) > 0.75
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API latency (p95 > 750ms)"
+          description: "Backend API latency has exceeded 750ms for 5 minutes."
+
+      - alert: ClaimSpike
+        expr: earnsure_claims_last_hour > 25
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Claim spike detected"
+          description: "Claims in the last hour exceeded 25."
+
+      - alert: FraudSpike
+        expr: earnsure_fraud_flags_last_hour > 8
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Fraud spike detected"
+          description: "Fraud alerts in the last hour exceeded 8."

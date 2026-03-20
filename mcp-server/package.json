@@ -1,0 +1,16 @@
+{
+  "name": "earnsure-mcp-server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "node-fetch": "^3.3.2",
+    "pg": "^8.12.0",
+    "zod": "^3.23.8"
+  }
+}

@@ -1,0 +1,142 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: earnsure
+      POSTGRES_USER: earnsure
+      POSTGRES_PASSWORD: earnsure_dev_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U earnsure -d earnsure"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  ai-engine:
+    build:
+      context: ./ai-engine
+    environment:
+      ENV: production
+      ENABLE_TRAINING_ENDPOINT: "false"
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend-services:
+    build:
+      context: .
+      dockerfile: ./backend-services/Dockerfile
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgres://earnsure:earnsure_dev_password@db:5432/earnsure
+      LOG_LEVEL: info
+      CORS_ORIGIN: http://localhost:5173
+      ACCESS_TOKEN_SECRET: change_me_access
+      REFRESH_TOKEN_SECRET: change_me_refresh
+      TWILIO_DISABLED: "true"
+      TWILIO_VERIFY_SERVICE_SID: ${TWILIO_VERIFY_SERVICE_SID:-}
+      OPENWEATHER_API_KEY: ${OPENWEATHER_API_KEY:-}
+      OPENWEATHER_GEO_URL: http://api.openweathermap.org/geo/1.0/direct
+      OPENWEATHER_AIR_URL: http://api.openweathermap.org/data/2.5/air_pollution
+      TRAFFIC_API_KEY: ${TRAFFIC_API_KEY:-}
+      TRAFFIC_FLOW_URL: https://api.tomtom.com/traffic/services/4/flowSegmentData/relative0/10/json
+      PLATFORM_DEMAND_URL: ${PLATFORM_DEMAND_URL:-}
+      PLATFORM_DEMAND_TOKEN: ${PLATFORM_DEMAND_TOKEN:-}
+      PLATFORM_FEED_URL: ${PLATFORM_FEED_URL:-}
+      PLATFORM_FEED_TOKEN: ${PLATFORM_FEED_TOKEN:-}
+      ENABLE_MOCK_FEED: ${ENABLE_MOCK_FEED:-false}
+      DEMAND_ZONES: ${DEMAND_ZONES:-}
+      SIMULATE_ACTIVITY: ${SIMULATE_ACTIVITY:-true}
+      AVG_ORDER_VALUE: ${AVG_ORDER_VALUE:-65}
+      DOWNTIME_DROP_THRESHOLD: ${DOWNTIME_DROP_THRESHOLD:-50}
+      RISK_ALERT_THRESHOLD: ${RISK_ALERT_THRESHOLD:-0.7}
+      FRAUD_SCORE_THRESHOLD: ${FRAUD_SCORE_THRESHOLD:-0.6}
+      DOWNTIME_CLAIM_WINDOW_HOURS: ${DOWNTIME_CLAIM_WINDOW_HOURS:-12}
+      INGEST_API_KEY: ${INGEST_API_KEY:-}
+      NOTIFICATIONS_ENABLED: ${NOTIFICATIONS_ENABLED:-true}
+      NOTIFY_CHANNELS: ${NOTIFY_CHANNELS:-sms}
+      TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-}
+      ENABLE_POLICY_SCHEDULER: "true"
+      POLICY_SCHEDULER_MINUTES: 60
+      POLICY_PREMIUM_GRACE_DAYS: 3
+      POLICY_LAPSE_DAYS: 14
+      PREMIUM_COLLECTION_MAX_ATTEMPTS: 3
+      SIMULATE_PREMIUM_COLLECTION: "true"
+      FRAUD_MODEL_URL: http://ai-engine:8000/fraud/score
+      POOL_RESERVE_PERCENT: 0.1
+      POOL_PAYOUT_CAP_PERCENT: 0.4
+      ALLOW_RESERVE_PAYOUT: "true"
+      REINSURANCE_ENABLED: "true"
+      REINSURANCE_SEED_BALANCE: 50000
+      MCP_SERVER_CMD: node
+      MCP_SERVER_PATH: /app/mcp-server/server.js
+      RISK_PREDICTION_URL: http://ai-engine:8000/risk/predict
+      UPI_PROVIDER: ${UPI_PROVIDER:-simulate}
+      UPI_DEFAULT_VPA: ${UPI_DEFAULT_VPA:-worker@upi}
+      RAZORPAY_KEY_ID: ${RAZORPAY_KEY_ID:-}
+      RAZORPAY_KEY_SECRET: ${RAZORPAY_KEY_SECRET:-}
+      RAZORPAY_ACCOUNT_NUMBER: ${RAZORPAY_ACCOUNT_NUMBER:-}
+      ENABLE_SCHEDULERS: "true"
+      SCHEDULER_INTERVAL_MINUTES: 10
+    ports:
+      - "3001:3001"
+    depends_on:
+      db:
+        condition: service_healthy
+      ai-engine:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:3001/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  frontend:
+    build:
+      context: ./frontend
+    environment:
+      VITE_API_BASE_URL: http://backend-services:3001
+    ports:
+      - "5173:80"
+    depends_on:
+      backend-services:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/alert.rules.yml:/etc/prometheus/alert.rules.yml:ro
+    ports:
+      - "9090:9090"
+    depends_on:
+      backend-services:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:10.4.3
+    ports:
+      - "3002:3000"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    depends_on:
+      prometheus:
+        condition: service_started
+
+volumes:
+  db_data:

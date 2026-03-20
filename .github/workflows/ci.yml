@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches: ["main", "master"]
+  pull_request:
+
+jobs:
+  backend-tests:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: earnsure_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d earnsure_test"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/earnsure_test
+      TWILIO_DISABLED: "true"
+      ACCESS_TOKEN_SECRET: test_access
+      REFRESH_TOKEN_SECRET: test_refresh
+      OTP_TTL_MINUTES: "5"
+      ADMIN_WHITELIST: ""
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Postgres client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Apply schema
+        run: psql -h localhost -U postgres -d earnsure_test -f database/schema.sql
+        env:
+          PGPASSWORD: postgres
+
+      - name: Install backend deps
+        run: npm ci
+        working-directory: backend-services
+
+      - name: Run backend tests
+        run: npm test
+        working-directory: backend-services
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install frontend deps
+        run: npm ci
+        working-directory: frontend
+
+      - name: Build frontend
+        run: npm run build
+        working-directory: frontend

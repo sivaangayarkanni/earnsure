@@ -1,0 +1,16 @@
+{
+  "name": "earnsure-ai-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node src/agent.js",
+    "orchestrate": "node src/orchestrator.js",
+    "simulate": "node src/simulate.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "dotenv": "^16.4.5",
+    "pg": "^8.12.0"
+  }
+}

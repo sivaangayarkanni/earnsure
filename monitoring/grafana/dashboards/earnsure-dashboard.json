@@ -1,0 +1,73 @@
+{
+  "uid": "earnsure-kpi",
+  "title": "EarnSure KPI Monitoring",
+  "timezone": "browser",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "HTTP Latency (p95)",
+      "gridPos": { "x": 0, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "HTTP Requests",
+      "gridPos": { "x": 12, "y": 0, "w": 12, "h": 8 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[5m]))",
+          "legendFormat": "rps"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Claims (Last Hour)",
+      "gridPos": { "x": 0, "y": 8, "w": 6, "h": 6 },
+      "targets": [
+        {
+          "expr": "earnsure_claims_last_hour"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Fraud Flags (Last Hour)",
+      "gridPos": { "x": 6, "y": 8, "w": 6, "h": 6 },
+      "targets": [
+        {
+          "expr": "earnsure_fraud_flags_last_hour"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Payouts (Last Hour)",
+      "gridPos": { "x": 12, "y": 8, "w": 6, "h": 6 },
+      "targets": [
+        {
+          "expr": "earnsure_payouts_last_hour"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Downtime Incidents (Last Hour)",
+      "gridPos": { "x": 18, "y": 8, "w": 6, "h": 6 },
+      "targets": [
+        {
+          "expr": "earnsure_downtime_last_hour"
+        }
+      ]
+    }
+  ],
+  "templating": { "list": [] }
+}

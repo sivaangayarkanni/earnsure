@@ -1,0 +1,31 @@
+node_modules/
+dist/
+build/
+.env
+.env.*
+!.env.example
+
+__pycache__/
+.pytest_cache/
+.venv/
+venv/
+.python-version
+
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
